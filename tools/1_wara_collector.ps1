@@ -373,44 +373,25 @@ function Get-AllResourceGroup {
 
   function Connect-ToAzure {
     # Connect To Azure Tenant
-    Write-Host "Authenticating to Azure"
-    if ($Script:ShellPlatform -eq 'Win32NT')
-      {
-        Clear-AzContext -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue -InformationAction SilentlyContinue
-        if ([string]::IsNullOrEmpty($TenantID))
-          {
-            write-host "Tenant ID not specified."
-            write-host ""
-            Connect-AzAccount -WarningAction SilentlyContinue -Environment $AzureEnvironment
-            $Tenants = Get-AzTenant
-            if ($Tenants.count -gt 1)
-              {
-                Write-Host "Select the Azure Tenant to connect : "
-                $Selection = 1
-                foreach ($Tenant in $Tenants)
-                  {
-                    $TenantName = $Tenant.Name
-                    write-host "$Selection)  $TenantName"
-                    $Selection ++
-                  }
-                write-host ""
-                [int]$SelectedTenant = read-host "Select Tenant"
-                $defaultTenant = --$SelectedTenant
-                $TenantID = $Tenants[$defaultTenant]
-                Connect-AzAccount -Tenant $TenantID -WarningAction SilentlyContinue -Environment $AzureEnvironment
-              }
-          }
-        else
-          {
-            Connect-AzAccount -Tenant $TenantID -WarningAction SilentlyContinue -Environment $AzureEnvironment
-          }
-        #Set the default variable with the list of subscriptions in case no Subscription File was informed
-        $Script:SubIds = Get-AzSubscription -TenantId $TenantID -WarningAction SilentlyContinue
-      }
-    else
-      {
-        Connect-AzAccount -Identity -Environment $AzureEnvironment
-        $Script:SubIds = Get-AzSubscription -WarningAction SilentlyContinue
+    if((Get-azcontext)){
+      Write-Host "Already Connected to Azure"
+    }
+    else{
+      Write-Host "Authenticating to Azure"
+      Connect-AzAccount -Identity -Environment $AzureEnvironment
+    }
+
+    if($GUI){
+      $TenantID = New-AzTenantSelection
+      $SubscriptionIds = (New-AzSubscriptionSelection -TenantId $TenantID.id).id
+    }
+    else{
+      $SubscriptionIds = Get-AzSubscription
+    }
+
+    if($ResourceGroupGUI){
+      $ResourceGroupList = (New-AzResourceGroupSelection).Id.tolower()
+      $ResourceGroups = $ResourceGroupList | ForEach-Object {$_.split("/")[4]}
       }
 
 
@@ -1481,16 +1462,6 @@ function Get-AllResourceGroup {
       $Tags = $ConfigData.Tags
     }
 
-    if($GUI){
-      $TenantID = New-AzTenantSelection
-      $SubscriptionIds = (New-AzSubscriptionSelection -TenantId $TenantID.id).id
-    }
-
-    if($ResourceGroupGUI){
-      $ResourceGroupList = (New-AzResourceGroupSelection).Id.tolower()
-      $ResourceGroups = $ResourceGroupList | ForEach-Object {$_.split("/")[4]}
-      }
-
   Write-Debug "Checking Parameters"
   Test-SubscriptionParameter
 
@@ -1507,12 +1478,8 @@ function Get-AllResourceGroup {
   Test-Runbook
 
 
-
   Write-Debug "Calling Function: Connect-ToAzure"
   Connect-ToAzure
-
-
-
 
   Write-Debug "Calling Function: Test-SubscriptionFile"
   Test-SubscriptionFile
