@@ -1115,29 +1115,46 @@ $Script:Runtime = Measure-Command -Expression {
         $Script:InScope = $Script:InScope | Where-Object {$_.id -notin $Script:ExcludeList.id}
       }
 
-    $Script:ImpactedResources += foreach ($Temp in $Script:results)
-      {
-        if ($Temp.id -in $Script:InScope.id)
-          {
-              $TempDetails = ($Script:PreInScopeResources | Where-Object { $_.id -eq $Temp.id } | Select-Object -First 1)
-              $result = [PSCustomObject]@{
-                validationAction = $Temp.validationAction
-                recommendationId = $Temp.recommendationId
-                name             = $Temp.name
-                id               = $Temp.id
-                type             = $TempDetails.type
-                location         = $TempDetails.location
-                subscriptionId   = $TempDetails.subscriptionId
-                resourceGroup    = $TempDetails.resourceGroup
-                param1           = $Temp.param1
-                param2           = $Temp.param2
-                param3           = $Temp.param3
-                param4           = $Temp.param4
-                param5           = $Temp.param5
-                checkName        = $Temp.checkName
-                selector         = $Temp.selector
-              }
-          }
+    $Script:ImpactedResources += foreach ($Temp in $Script:results) {
+      if ($Temp.id -eq "n/a") {
+        $result = [PSCustomObject]@{
+          validationAction = $Temp.validationAction
+          recommendationId = $Temp.recommendationId
+          name             = 'n/a'
+          id               = 'n/a'
+          type             = 'n/a'
+          location         = 'n/a'
+          subscriptionId   = 'n/a'
+          resourceGroup    = 'n/a'
+          param1           = $Temp.param1
+          param2           = $Temp.param2
+          param3           = $Temp.param3
+          param4           = $Temp.param4
+          param5           = $Temp.param5
+          checkName        = $Temp.checkName
+          selector         = $Temp.selector
+        }
+      }
+      elseif ($Temp.id -in $Script:InScope.id) {
+        $TempDetails = ($Script:PreInScopeResources | Where-Object { $_.id -eq $Temp.id } | Select-Object -First 1)
+        $result = [PSCustomObject]@{
+          validationAction = $Temp.validationAction
+          recommendationId = $Temp.recommendationId
+          name             = $Temp.name
+          id               = $Temp.id
+          type             = $TempDetails.type
+          location         = $TempDetails.location
+          subscriptionId   = $TempDetails.subscriptionId
+          resourceGroup    = $TempDetails.resourceGroup
+          param1           = $Temp.param1
+          param2           = $Temp.param2
+          param3           = $Temp.param3
+          param4           = $Temp.param4
+          param5           = $Temp.param5
+          checkName        = $Temp.checkName
+          selector         = $Temp.selector
+        }
+      }
       $result
     }
 
